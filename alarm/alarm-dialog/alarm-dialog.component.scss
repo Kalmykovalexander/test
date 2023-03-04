@@ -1,0 +1,97 @@
+.alarm-grid {
+  display: grid;
+  gap: .5em;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.alarm-type-icon {
+  height: 4rem;
+  margin-top: .7rem;
+  margin-bottom: .7rem;
+  display: flex;
+  justify-content: center;
+  vertical-align: bottom;
+}
+
+::ng-deep .mat-card{
+  background-color: var(--bg-card) !important;
+  color: var(--text-color) !important;
+  height: 10rem;
+  width: 100%;
+  box-shadow: 0px 1px 2px 1px rgba(0,0,0,0.15) !important;
+}
+
+::ng-deep .mat-card:hover{
+  background-color: var(--bg-card-hover-color) !important;
+}
+
+::ng-deep .mat-card-content {
+  text-align: center;
+  font-size: .9rem;
+}
+
+::ng-deep .mat-select-value {
+  color: var(--text-color);
+}
+
+::ng-deep .mat-select-arrow {
+  color: var(--text-color);
+}
+
+::ng-deep .mat-form-field-required-marker {
+  color: var(--text-color);
+}
+
+mat-label {
+  color: var(--text-color);
+}
+
+.mat-option {
+  color: var(--text-color) !important;
+}
+
+input::placeholder{
+  color: var(--placeholder-text-color) !important;
+}
+
+.icon-display {
+  display: inline-flex;
+  vertical-align: bottom;
+  padding-left: .2rem;
+  font-size: 1.4rem;
+}
+
+.alarm-card-content{
+  padding-top: .6rem;
+}
+
+// forms
+
+.alarm-dialog-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 23.2rem;
+  width: 35rem;
+}
+
+.alarm-dialog-actions {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.field-full-width {
+  width: 100%;
+}
+
+.first-group-field {
+  width: 67%;
+  margin-right: 3%;
+}
+
+.second-group-field {
+  width: 30%;
+}

@@ -1,0 +1,150 @@
+<ng-container [ngTemplateOutlet]="selectedTemplate"></ng-container>
+
+<ng-template #choiceAlarmType>
+  <div class="alarm-dialog-container">
+    <h3 mat-dialog-title>Crea nuovo allarme - Scegli tipo</h3>
+    <mat-dialog-content>
+      <div class="alarm-grid">
+        <mat-card *ngFor="let alarmType of alarmTypes" (click)="openModalBySelectedType(alarmType.name)">
+          <mat-card-content class="alarm-card-content">
+            <div class="alarm-type-icon">
+              <img src="/assets/alarm/{{alarmType.iconName}}" alt="img">
+            </div>
+            <div>
+              {{alarmTypesMap.get(alarmType.name)}}
+              <mat-icon class="icon-display" matTooltip="{{alarmType.description}}">help_outline</mat-icon>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-dialog-content>
+  </div>
+</ng-template>
+
+<ng-template #createAlarmTemplate>
+  <div class="alarm-dialog-container">
+    <h3 mat-dialog-title>Crea allarme - {{alarmTypesMap.get(selectedAlarmType)}}</h3>
+    <mat-dialog-content>
+      <form  [formGroup]="form" (ngSubmit)="onSubmit()" class="form-full-width">
+
+        <!--nome e distanza-->
+        <div class="row">
+          <div class="col-6">
+            <mat-form-field class="field-full-width" appearance="fill">
+              <mat-label>Nome</mat-label>
+              <input matInput formControlName="name" autocomplete="off" required>
+              <mat-error *ngIf="form.controls.name.errors?.required">{{requiredFieldMessage}}</mat-error>
+              <mat-error *ngIf="form.controls.name.errors?.maxlength">{{incorrectNameMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+          <div class="col-6" *ngIf="selectedAlarmType === 0">
+            <div class="input-group">
+              <mat-form-field appearance="fill" class="first-group-field">
+                <mat-label>Distanza</mat-label>
+                <input matInput formControlName="distance" type="number" required>
+                <mat-error>{{requiredFieldMessage}}</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="fill" class="second-group-field">
+                <mat-select formControlName="distanceUnit">
+                  <mat-option value="m">m</mat-option>
+                  <mat-option value="km">km</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+          <div class="col-6" *ngIf="selectedAlarmType === 2">
+            <mat-form-field class="field-full-width" appearance="fill">
+              <mat-label>Velocità</mat-label>
+              <input matInput formControlName="maxSpeed" type="number" required>
+              <span matSuffix>km/h</span>
+              <mat-error *ngIf="form.controls.maxSpeed.errors?.required">{{requiredFieldMessage}}</mat-error>
+              <mat-error *ngIf="form.controls.maxSpeed.errors?.max">{{incorrectSpeedMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!--veicolo e poi-->
+        <div class="row">
+          <div class="col-6">
+            <mat-form-field class="field-full-width" appearance="fill">
+              <mat-label>Seleziona veicolo</mat-label>
+              <mat-select formControlName="vehicle" required>
+                <mat-option *ngIf="!vehicleList.length; else selectVehicle" disabled>{{notFoundVehiclesMessage}}</mat-option>
+                <ng-template #selectVehicle>
+                  <mat-option *ngFor="let vehicle of vehicleList" [value]="vehicle.id">{{vehicle.name}}</mat-option>
+                </ng-template>
+              </mat-select>
+              <mat-error>{{requiredFieldMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+          <div class="col-6" *ngIf="selectedAlarmType === 0">
+            <mat-form-field class="field-full-width" appearance="fill">
+              <mat-label>Seleziona p.o.i.</mat-label>
+
+              <mat-select formControlName="poi" required>
+                <mat-option *ngIf="!poiList.length; else selectPoi" disabled>{{notFoundPoisMessage}}</mat-option>
+                <ng-template #selectPoi>
+                  <mat-option *ngFor="let poi of poiList" [value]="poi.id">{{poi.name}}</mat-option>
+                </ng-template>
+              </mat-select>
+              <mat-error>{{requiredFieldMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!--sending-->
+        <div class="row">
+          <div class="col-6">
+            <mat-form-field class="field-full-width" appearance="fill">
+              <mat-label>Seleziona tipo di invio</mat-label>
+              <mat-select [(ngModel)]="selectedSendType" (selectionChange)="onSelectionChange($event)" formControlName="sendType">
+                <mat-option value="email">email</mat-option>
+                <mat-option value="sms">sms</mat-option>
+              </mat-select>
+              <mat-error>{{requiredFieldMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+          <div class="col-6">
+            <mat-form-field *ngIf="selectedSendType === 'email'" class="field-full-width" appearance="fill">
+              <input matInput formControlName="email" type="email" placeholder="Inserisci email" required>
+              <mat-error>{{incorrectEmailMessage}}</mat-error>
+            </mat-form-field>
+            <mat-form-field *ngIf="selectedSendType === 'sms'" class="field-full-width" appearance="fill">
+              <input matInput formControlName="phone" type="tel" value="+39" required>
+              <mat-error>{{incorrectPhoneMessage}}</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!--geo-area-->
+        <div class="row" *ngIf="selectedAlarmType === 1" style="margin-top: 10px">
+          <div class="col-6">
+            <button mat-button type="button" (click)="createPolygon()">Seleziona area geografica</button>
+          </div>
+          <div class="col-6">
+            <mat-form-field *ngIf="createdPolygon != null" class="field-full-width" appearance="fill">
+              <input matInput value="{{createdPolygon}}" readonly>
+            </mat-form-field>
+          </div>
+        </div>
+
+      </form>
+    </mat-dialog-content>
+    <div class="alarm-dialog-actions">
+      <mat-dialog-actions>
+        <button mat-button mat-dialog-close>Annulla</button>
+        <button mat-button (click)="onBack()">Indietro</button>
+        <button mat-button (click)="onSubmit()" cdkFocusInitial color="primary">Salva</button>
+      </mat-dialog-actions>
+    </div>
+  </div>
+</ng-template>
+
+
+
+
+
+
+
+
+

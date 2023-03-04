@@ -1,0 +1,35 @@
+<div class="dropdown-container">
+  <div class="alarm-container">
+    <div class="input-group">
+      <mat-icon class="md-18">search</mat-icon>
+      <input type="text"
+             [(ngModel)] = searchTerm
+             (ngModelChange)="onChangeSearchTerm($event)"
+             class="form-control mb-2"
+             placeholder="Cerca allarmi scattati"
+             aria-label="cerca"
+             aria-describedby="addon-wrapping">
+      <button (click)="clearSearchTerm()"  *ngIf="searchTerm.length > 0" type="button" class="clear-filter-btn">
+        <mat-icon class="clear-filter-btn-icon">backspace</mat-icon>
+      </button>
+    </div>
+    <div class="m-2" *ngIf="!triggeredAlarms || triggeredAlarms.length === 0">
+      {{noTriggeredAlarmsMessage}}
+    </div>
+    <ul *ngIf="triggeredAlarms && triggeredAlarms.length > 0" class="list-group list-group-flush alarm-list">
+      <li *ngFor="let alarm of triggeredAlarms | alarmFilter:searchTerm " class="list-group-item d-flex">
+        <div class="alarm-name flex-grow-1">
+          {{alarm.name}}
+        </div>
+      </li>
+    </ul>
+  </div>
+  <button (click)="create()" mat-raised-button color="primary" class="m-1">
+    <span>{{createBtnLabel}}</span>
+    <mat-icon class="alarm-icon">add_circle</mat-icon>
+  </button>
+  <button (click)="modify()" mat-raised-button color="primary" class="m-1">
+    <span>{{modifyBtnLabel}}</span>
+    <mat-icon class="alarm-icon">settings</mat-icon>
+  </button>
+</div>
