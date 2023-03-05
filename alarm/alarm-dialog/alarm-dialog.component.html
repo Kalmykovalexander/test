@@ -1,6 +1,6 @@
 <ng-container [ngTemplateOutlet]="selectedTemplate"></ng-container>
 
-<ng-template #choiceAlarmType>
+<ng-template #choiceTemplate>
   <div class="alarm-dialog-container">
     <h3 mat-dialog-title>Crea nuovo allarme - Scegli tipo</h3>
     <mat-dialog-content>
@@ -21,7 +21,7 @@
   </div>
 </ng-template>
 
-<ng-template #createAlarmTemplate>
+<ng-template #createTemplate>
   <div class="alarm-dialog-container">
     <h3 mat-dialog-title>Crea allarme - {{alarmTypesMap.get(selectedAlarmType)}}</h3>
     <mat-dialog-content>

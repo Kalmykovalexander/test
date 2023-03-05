@@ -19,7 +19,6 @@ export class AlarmComponent implements OnInit, OnDestroy  {
   searchTerm: string = '';
 
   dialogRef: MatDialogRef<AlarmDialogComponent>;
-  currentDialogRef: MatDialogRef<AlarmDialogComponent>;
 
   constructor(private _navService: NavService, public dialog: MatDialog) { }
 
@@ -32,19 +31,8 @@ export class AlarmComponent implements OnInit, OnDestroy  {
   }
 
   create(): void {
-    this.dialogRef = this.dialog.open(AlarmDialogComponent);
-    this.dialogRef.componentInstance.hideAlarmModal.subscribe( () => {
-      this.dialogRef.close();
-      console.log('dialogRef ', this.dialogRef);
-    });
-
-    this.dialogRef.componentInstance.geoAreaCreated.subscribe((polygon: any) => {
-      this.currentDialogRef = this.dialog.open(AlarmDialogComponent);
-      console.log('currentDialogRef ', this.currentDialogRef);
-      const path = polygon.getPath();
-      const latLngArray = path.getArray();
-      const latLngList = latLngArray.map((latLng: { lat: () => any; lng: () => any; }) => [latLng.lat(), latLng.lng()]);
-      // this.currentDialogRef.componentInstance.createdPolygon = latLngList;
+    this.dialogRef = this.dialog.open(AlarmDialogComponent, {
+      data: { template: 'choiceTemplate' }
     });
   }
 

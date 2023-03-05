@@ -1,14 +1,15 @@
-import {Component, OnInit, TemplateRef, ViewChild, EventEmitter} from '@angular/core';
+import {Component, OnInit, TemplateRef, ViewChild, EventEmitter, Inject} from '@angular/core';
 import {IAlarmType} from "../../../../../../models/alarm/i-alarm-type";
 import {AlarmService} from "../../../../../../services/alarm/alarm.service";
-import {MatDialogRef} from "@angular/material/dialog";
-import {FormBuilder, Validators} from "@angular/forms";
+import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
+import {FormBuilder, FormGroup, Validators} from "@angular/forms";
 import {ValidateInput} from "../../../../../../core/classes/validators/validate-input";
 import {IPOI} from "../../../../../../models/poi/i-poi";
 import {IVehicle} from "../../../../../../models/vehicle/i-vehicle";
 import {VehicleService} from "../../../../../../services/vehicle/vehicle.service";
 import {PoiMapService} from "../../../../../../services/poi/poi-map-service/poi-map.service";
 import {AlarmMapService} from "../../../../../../services/alarm/alarm-map-service/alarm-map.service";
+import {NavService} from "../../../../../services/nav/nav.service";
 
 export enum AlarmTypeEnum {
   MOVING_TO_POI,
@@ -23,13 +24,10 @@ export enum AlarmTypeEnum {
   styleUrls: ['./alarm-dialog.component.scss']
 })
 export class AlarmDialogComponent implements OnInit {
-  @ViewChild('choiceAlarmType', {static: true}) choiceAlarmType: TemplateRef<any>;
-  @ViewChild('createAlarmTemplate', {static: true}) createAlarmTemplate: TemplateRef<any>;
+  @ViewChild('choiceTemplate', {static: true}) choiceTemplate: TemplateRef<any>;
+  @ViewChild('createTemplate', {static: true}) createTemplate: TemplateRef<any>;
 
-  geoAreaCreated = new EventEmitter<google.maps.Polygon>();
   createdPolygon: any = null;
-  hideAlarmModal = new EventEmitter<any>();
-
   selectedTemplate: TemplateRef<any>;
   selectedAlarmType: AlarmTypeEnum;
   selectedSendType: string;
@@ -66,10 +64,22 @@ export class AlarmDialogComponent implements OnInit {
   notFoundVehiclesMessage: string = 'Nessun veicolo trovato';
   notFoundPoisMessage: string = 'Nessun P.O.I. trovato';
 
-  constructor(private _alarmMapService: AlarmMapService, private _alarmService: AlarmService, private vehicleService: VehicleService, private _poiMapService: PoiMapService, private _formBuilder: FormBuilder) {}
+  constructor(private dialogRef: MatDialogRef<AlarmDialogComponent>,
+              private _alarmMapService: AlarmMapService,
+              private _alarmService: AlarmService,
+              private vehicleService: VehicleService,
+              private _poiMapService: PoiMapService,
+              private _formBuilder: FormBuilder,
+              public dialog: MatDialog,
+              @Inject(MAT_DIALOG_DATA) public data: any) {}
 
   ngOnInit(): void {
-    this.selectedTemplate = this.choiceAlarmType;
+    this.selectedTemplate = this.data.template === 'choiceTemplate' ? this.choiceTemplate : this.createTemplate;
+    console.log('before open modal ', this.data.alarmType);
+    if (this.data.alarmType) {
+      this.selectedAlarmType = AlarmTypeEnum.GEO_AREA;
+      this.form.setValue(this.data.formData);
+    }
     this.findAllAlarmTypes();
     this.findAllPois();
     this.findVehicleList();
@@ -120,12 +130,12 @@ export class AlarmDialogComponent implements OnInit {
 
   openModalBySelectedType(type:any) {
     this.selectedAlarmType = type;
-    this.selectedTemplate = this.createAlarmTemplate;
+    this.selectedTemplate = this.createTemplate;
   }
 
   onBack() {
     this.form.reset();
-    this.selectedTemplate = this.choiceAlarmType;
+    this.selectedTemplate = this.choiceTemplate;
   }
 
   onSubmit(){
@@ -139,9 +149,19 @@ export class AlarmDialogComponent implements OnInit {
   }
 
   createPolygon() {
-    this.hideAlarmModal.emit();
-    this._alarmMapService.polygonCreated.subscribe((polygon: any) => {
-      this.geoAreaCreated.emit(polygon);
+    // save here before close
+    const formData = this.dialogRef.componentInstance.form.value;
+    console.log('formData', formData);
+    this.dialogRef.close();
+    const polygonSubscription = this._alarmMapService.polygonCreated.subscribe((polygon: any) => {
+      this.dialogRef = this.dialog.open(AlarmDialogComponent, {
+        data: {
+          template: 'createTemplate',
+          alarmType: AlarmTypeEnum.GEO_AREA,
+          formData: formData
+        },
+      });
+      polygonSubscription.unsubscribe();
     });
     this._alarmMapService.create();
   }
