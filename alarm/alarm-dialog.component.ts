@@ -23,7 +23,7 @@ export enum AlarmTypeEnum {
   templateUrl: './alarm-dialog.component.html',
   styleUrls: ['./alarm-dialog.component.scss']
 })
-export class AlarmDialogComponent implements OnInit, AfterViewInit {
+export class AlarmDialogComponent implements OnInit {
   @ViewChild('choiceTemplate', {static: true}) choiceTemplate: TemplateRef<any>;
   @ViewChild('createTemplate', {static: true}) createTemplate: TemplateRef<any>;
   @ViewChild('mini_map', {static: true}) mapElementRef: ElementRef;
@@ -77,13 +77,14 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
     this.selectedTemplate = this.data.template === 'choiceTemplate' ? this.choiceTemplate : this.createTemplate;
     if (this.data.alarmType) {
       this.selectedAlarmType = AlarmTypeEnum.GEO_AREA;
+      this.initMiniMap();
     }
     this.findAllAlarmTypes();
     this.findAllPois();
     this.findVehicleList();
   }
 
-  ngAfterViewInit(): void {
+  initMiniMap() {
     this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
     this.miniMapService.mapInit();
     // this.miniMapService.placeMarker(this.data.lat(), this.data.lng(), 'p4.ico');
@@ -133,6 +134,9 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
   }
 
   openModalBySelectedType(type:any) {
+    if (type === AlarmTypeEnum.GEO_AREA) {
+      this.createPolygon();
+    }
     this.selectedAlarmType = type;
     this.selectedTemplate = this.createTemplate;
   }
@@ -161,6 +165,7 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
           polygon: polygon,
         },
       });
+
       polygonSubscription.unsubscribe();
     });
     this._alarmMapService.create();
