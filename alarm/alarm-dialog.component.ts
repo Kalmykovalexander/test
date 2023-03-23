@@ -1,15 +1,15 @@
-import {Component, OnInit, TemplateRef, ViewChild, EventEmitter, Inject} from '@angular/core';
+import {Component, OnInit, TemplateRef, ViewChild, Inject, ElementRef, AfterViewInit} from '@angular/core';
 import {IAlarmType} from "../../../../../../models/alarm/i-alarm-type";
 import {AlarmService} from "../../../../../../services/alarm/alarm.service";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
-import {FormBuilder, FormGroup, Validators} from "@angular/forms";
+import {FormBuilder, Validators} from "@angular/forms";
 import {ValidateInput} from "../../../../../../core/classes/validators/validate-input";
 import {IPOI} from "../../../../../../models/poi/i-poi";
 import {IVehicle} from "../../../../../../models/vehicle/i-vehicle";
 import {VehicleService} from "../../../../../../services/vehicle/vehicle.service";
 import {PoiMapService} from "../../../../../../services/poi/poi-map-service/poi-map.service";
 import {AlarmMapService} from "../../../../../../services/alarm/alarm-map-service/alarm-map.service";
-import {NavService} from "../../../../../services/nav/nav.service";
+import {MiniMapService} from "../../../../../../services/map/mini-map.service";
 
 export enum AlarmTypeEnum {
   MOVING_TO_POI,
@@ -23,14 +23,13 @@ export enum AlarmTypeEnum {
   templateUrl: './alarm-dialog.component.html',
   styleUrls: ['./alarm-dialog.component.scss']
 })
-export class AlarmDialogComponent implements OnInit {
+export class AlarmDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('choiceTemplate', {static: true}) choiceTemplate: TemplateRef<any>;
   @ViewChild('createTemplate', {static: true}) createTemplate: TemplateRef<any>;
+  @ViewChild('mini_map', {static: true}) mapElementRef: ElementRef;
 
-  createdPolygon: any = null;
   selectedTemplate: TemplateRef<any>;
   selectedAlarmType: AlarmTypeEnum;
-  selectedSendType: string;
 
   poiList: Array<IPOI> = [];
   vehicleList: Array<IVehicle> = [];
@@ -65,24 +64,29 @@ export class AlarmDialogComponent implements OnInit {
   notFoundPoisMessage: string = 'Nessun P.O.I. trovato';
 
   constructor(private dialogRef: MatDialogRef<AlarmDialogComponent>,
+              public dialog: MatDialog,
+              private _formBuilder: FormBuilder,
               private _alarmMapService: AlarmMapService,
               private _alarmService: AlarmService,
               private vehicleService: VehicleService,
               private _poiMapService: PoiMapService,
-              private _formBuilder: FormBuilder,
-              public dialog: MatDialog,
+              private miniMapService: MiniMapService,
               @Inject(MAT_DIALOG_DATA) public data: any) {}
 
   ngOnInit(): void {
     this.selectedTemplate = this.data.template === 'choiceTemplate' ? this.choiceTemplate : this.createTemplate;
-    console.log('before open modal ', this.data.alarmType);
     if (this.data.alarmType) {
       this.selectedAlarmType = AlarmTypeEnum.GEO_AREA;
-      this.form.setValue(this.data.formData);
     }
     this.findAllAlarmTypes();
     this.findAllPois();
     this.findVehicleList();
+  }
+
+  ngAfterViewInit(): void {
+    this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
+    this.miniMapService.mapInit();
+    // this.miniMapService.placeMarker(this.data.lat(), this.data.lng(), 'p4.ico');
   }
 
   findAllAlarmTypes() {
@@ -142,23 +146,19 @@ export class AlarmDialogComponent implements OnInit {
     console.log("onSubmit in work")
   }
 
-  onSelectionChange(event: any) {
-    this.selectedSendType = event.value;
+  onSelectionChange() {
     this.form.get('email')?.reset('');
     this.form.get('phone')?.reset('+39');
   }
 
   createPolygon() {
-    // save here before close
-    const formData = this.dialogRef.componentInstance.form.value;
-    console.log('formData', formData);
     this.dialogRef.close();
     const polygonSubscription = this._alarmMapService.polygonCreated.subscribe((polygon: any) => {
-      this.dialogRef = this.dialog.open(AlarmDialogComponent, {
+      this.dialog.open(AlarmDialogComponent, {
         data: {
           template: 'createTemplate',
           alarmType: AlarmTypeEnum.GEO_AREA,
-          formData: formData
+          polygon: polygon,
         },
       });
       polygonSubscription.unsubscribe();
