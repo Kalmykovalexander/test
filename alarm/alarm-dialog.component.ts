@@ -1,4 +1,13 @@
-import {Component, OnInit, TemplateRef, ViewChild, Inject, ElementRef, AfterViewInit} from '@angular/core';
+import {
+  Component,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  Inject,
+  ElementRef,
+  AfterViewInit,
+  AfterContentInit
+} from '@angular/core';
 import {IAlarmType} from "../../../../../../models/alarm/i-alarm-type";
 import {AlarmService} from "../../../../../../services/alarm/alarm.service";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
@@ -23,7 +32,7 @@ export enum AlarmTypeEnum {
   templateUrl: './alarm-dialog.component.html',
   styleUrls: ['./alarm-dialog.component.scss']
 })
-export class AlarmDialogComponent implements OnInit {
+export class AlarmDialogComponent implements OnInit, AfterContentInit {
   @ViewChild('choiceTemplate', {static: true}) choiceTemplate: TemplateRef<any>;
   @ViewChild('createTemplate', {static: true}) createTemplate: TemplateRef<any>;
   @ViewChild('mini_map', {static: true}) mapElementRef: ElementRef;
@@ -77,17 +86,18 @@ export class AlarmDialogComponent implements OnInit {
     this.selectedTemplate = this.data.template === 'choiceTemplate' ? this.choiceTemplate : this.createTemplate;
     if (this.data.alarmType) {
       this.selectedAlarmType = AlarmTypeEnum.GEO_AREA;
-      this.initMiniMap();
     }
     this.findAllAlarmTypes();
     this.findAllPois();
     this.findVehicleList();
   }
 
-  initMiniMap() {
-    this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
-    this.miniMapService.mapInit();
-    // this.miniMapService.placeMarker(this.data.lat(), this.data.lng(), 'p4.ico');
+  ngAfterContentInit() {
+    if (this.selectedAlarmType === AlarmTypeEnum.GEO_AREA) {
+      this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
+      this.miniMapService.mapInit();
+      // this.miniMapService.placeMarker(this.data.lat(), this.data.lng(), 'p4.ico');
+    }
   }
 
   findAllAlarmTypes() {
