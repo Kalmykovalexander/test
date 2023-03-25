@@ -5,13 +5,12 @@ import {
   ViewChild,
   Inject,
   ElementRef,
-  AfterViewInit,
-  AfterContentInit
+  AfterViewInit
 } from '@angular/core';
 import {IAlarmType} from "../../../../../../models/alarm/i-alarm-type";
 import {AlarmService} from "../../../../../../services/alarm/alarm.service";
 import {MAT_DIALOG_DATA, MatDialog, MatDialogRef} from "@angular/material/dialog";
-import {FormBuilder, Validators} from "@angular/forms";
+import {FormBuilder, FormControl, Validators} from "@angular/forms";
 import {ValidateInput} from "../../../../../../core/classes/validators/validate-input";
 import {IPOI} from "../../../../../../models/poi/i-poi";
 import {IVehicle} from "../../../../../../models/vehicle/i-vehicle";
@@ -19,6 +18,9 @@ import {VehicleService} from "../../../../../../services/vehicle/vehicle.service
 import {PoiMapService} from "../../../../../../services/poi/poi-map-service/poi-map.service";
 import {AlarmMapService} from "../../../../../../services/alarm/alarm-map-service/alarm-map.service";
 import {MiniMapService} from "../../../../../../services/map/mini-map.service";
+import {IAlarm} from "../../../../../../models/alarm/i-alarm";
+import {PoiService} from "../../../../../../services/poi/poi.service";
+import {MatSnackBar} from "@angular/material/snack-bar";
 
 export enum AlarmTypeEnum {
   MOVING_TO_POI,
@@ -32,13 +34,13 @@ export enum AlarmTypeEnum {
   templateUrl: './alarm-dialog.component.html',
   styleUrls: ['./alarm-dialog.component.scss']
 })
-export class AlarmDialogComponent implements OnInit, AfterContentInit {
+export class AlarmDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('choiceTemplate', {static: true}) choiceTemplate: TemplateRef<any>;
   @ViewChild('createTemplate', {static: true}) createTemplate: TemplateRef<any>;
-  @ViewChild('mini_map', {static: true}) mapElementRef: ElementRef;
+  @ViewChild('mini_map', {static: false}) mapElementRef: ElementRef;
 
   selectedTemplate: TemplateRef<any>;
-  selectedAlarmType: AlarmTypeEnum;
+  selectedAlarmType: any = null;
 
   poiList: Array<IPOI> = [];
   vehicleList: Array<IVehicle> = [];
@@ -51,16 +53,17 @@ export class AlarmDialogComponent implements OnInit, AfterContentInit {
   ]);
 
   form = this._formBuilder.group({
-    name: ['', [Validators.required, ValidateInput.notEmpty, Validators.maxLength(100)]],
-    distance: ['', [Validators.required]],
-    distanceUnit: ['m'],
-    poi: ['', [Validators.required]],
-    polygon: ['', [Validators.required]],
-    vehicle: ['', [Validators.required]],
-    maxSpeed: ['', [Validators.required, Validators.max(500)]],
-    sendType: ['', [Validators.required]],
-    email: ['', [Validators.required, Validators.email]],
-    phone: ['+39', [Validators.required, Validators.pattern(/^(\+39|0)\d{8,10}$/)]],
+    alarmType:  new FormControl(this.selectedAlarmType, [Validators.required]),
+    name:  new FormControl('', [Validators.required, ValidateInput.notEmpty, Validators.maxLength(100)]),
+    distance:  new FormControl('',  [Validators.required]),
+    distanceUnit:  new FormControl('m'),
+    poi:  new FormControl('', [Validators.required]),
+    polygon:  new FormControl(this.data.polygon, [Validators.required]),
+    vehicle:  new FormControl('', [Validators.required]),
+    maxSpeed:  new FormControl('', [Validators.required, Validators.max(500)]),
+    sendType:  new FormControl('', [Validators.required]),
+    email:  new FormControl('', [Validators.required, Validators.email]),
+    phone:  new FormControl('+39', [Validators.required, Validators.pattern(/^(\+39|0)\d{8,10}$/)])
   });
 
   // error messages
@@ -80,6 +83,7 @@ export class AlarmDialogComponent implements OnInit, AfterContentInit {
               private vehicleService: VehicleService,
               private _poiMapService: PoiMapService,
               private miniMapService: MiniMapService,
+              private _snackBar: MatSnackBar,
               @Inject(MAT_DIALOG_DATA) public data: any) {}
 
   ngOnInit(): void {
@@ -92,11 +96,11 @@ export class AlarmDialogComponent implements OnInit, AfterContentInit {
     this.findVehicleList();
   }
 
-  ngAfterContentInit() {
+  ngAfterViewInit() {
     if (this.selectedAlarmType === AlarmTypeEnum.GEO_AREA) {
       this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
       this.miniMapService.mapInit();
-      // this.miniMapService.placeMarker(this.data.lat(), this.data.lng(), 'p4.ico');
+      this.miniMapService.placePolygon(this.data.polygon);
     }
   }
 
@@ -157,7 +161,39 @@ export class AlarmDialogComponent implements OnInit, AfterContentInit {
   }
 
   onSubmit(){
-    console.log("onSubmit in work")
+    console.log("form data ", this.form.value);
+    const promise = this._alarmService.create(this.form.value);
+    promise
+      .then((alarm : IAlarm) => {
+        this._snackBar.open('Allarme creato', 'Ok', {
+          duration: 5000,
+          horizontalPosition: 'right',
+          verticalPosition: 'bottom',
+        });
+        this.form.reset();
+        this.dialogRef.close();
+
+        // if (!this._mapControlService.getShowPoi()) {
+        //   setTimeout(() => {
+        //     this._poiMapService.togglePoiMarkers(false);
+        //   }, 5000);
+        // }
+
+      })
+      .catch((e: any) => {
+        if (e.error) {
+          let errors = e.error.message.split(";");
+          let list: [] = errors.filter((e: any) => e)
+          console.log(list)
+          this._snackBar.open('Errore! ' + list, 'Ok', {
+            duration: 5000,
+            horizontalPosition: 'right',
+            verticalPosition: 'bottom',
+          });
+        } else {}
+      })
+      .finally(() => {})
+    return;
   }
 
   onSelectionChange() {
@@ -172,10 +208,9 @@ export class AlarmDialogComponent implements OnInit, AfterContentInit {
         data: {
           template: 'createTemplate',
           alarmType: AlarmTypeEnum.GEO_AREA,
-          polygon: polygon,
+          polygon: polygon
         },
       });
-
       polygonSubscription.unsubscribe();
     });
     this._alarmMapService.create();

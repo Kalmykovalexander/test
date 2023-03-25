@@ -26,17 +26,12 @@
     <h3 mat-dialog-title>Crea allarme - {{alarmTypesMap.get(selectedAlarmType)}}</h3>
     <mat-dialog-content class="mat-typography">
       <div class="row">
-
         <!--geo-area mini map-->
         <div class="col" *ngIf="selectedAlarmType === 1">
-          mini map here
-          <div #mini_map id="mini-map">
-
-          </div>
+          <div #mini_map id="mini-map" class="alarm-mini-map"></div>
         </div>
         <div class="col">
           <form  [formGroup]="form" (ngSubmit)="onSubmit()" class="form-full-width">
-
             <!--nome e distanza-->
             <div class="row">
               <div [class.col-6]="selectedAlarmType != 1" [class.col-12]="selectedAlarmType === 1">
@@ -72,7 +67,6 @@
                 </mat-form-field>
               </div>
             </div>
-
             <!--veicolo e poi-->
             <div class="row">
               <div [class.col-6]="selectedAlarmType != 1" [class.col-12]="selectedAlarmType === 1">
@@ -100,7 +94,6 @@
                 </mat-form-field>
               </div>
             </div>
-
             <!--sending-->
             <div class="row">
               <div [class.col-6]="selectedAlarmType != 1" [class.col-12]="selectedAlarmType === 1">
@@ -124,7 +117,6 @@
                 </mat-form-field>
               </div>
             </div>
-
           </form>
         </div>
       </div>
