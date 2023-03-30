@@ -72,7 +72,7 @@ input::placeholder{
   display: flex;
   flex-direction: column;
   height: 23.2rem;
-  width: 35rem;
+  width: 40rem;
 }
 
 .alarm-dialog-actions {
@@ -88,15 +88,15 @@ input::placeholder{
 }
 
 .first-group-field {
-  width: 67%;
+  width: 72%;
   margin-right: 3%;
 }
 
 .second-group-field {
-  width: 30%;
+  width: 25%;
 }
 
 .alarm-mini-map {
   height: 16.589375rem;
-  width: 18.125rem;
+  width: auto;
 }

@@ -19,7 +19,6 @@ import {PoiMapService} from "../../../../../../services/poi/poi-map-service/poi-
 import {AlarmMapService} from "../../../../../../services/alarm/alarm-map-service/alarm-map.service";
 import {MiniMapService} from "../../../../../../services/map/mini-map.service";
 import {IAlarm} from "../../../../../../models/alarm/i-alarm";
-import {PoiService} from "../../../../../../services/poi/poi.service";
 import {MatSnackBar} from "@angular/material/snack-bar";
 
 export enum AlarmTypeEnum {
@@ -40,31 +39,39 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('mini_map', {static: false}) mapElementRef: ElementRef;
 
   selectedTemplate: TemplateRef<any>;
-  selectedAlarmType: any = null;
+  selectedAlarmTypeId: number;
+  daysOfWeek: any = ['1', '2', '3', '4', '5', '6', '7'];
 
   poiList: Array<IPOI> = [];
   vehicleList: Array<IVehicle> = [];
   alarmTypes: Array<IAlarmType> = [];
   alarmTypesMap = new Map([
-    [AlarmTypeEnum.MOVING_TO_POI, 'Punto di interesse'],
-    [AlarmTypeEnum.GEO_AREA, 'Area geografica' ],
-    [AlarmTypeEnum.MAX_SPEED, 'Velocità massima' ],
-    [AlarmTypeEnum.MOVING_STATUS, 'Stato movimento']
+    [1, 'Punto di interesse'],
+    [2, 'Area geografica' ],
+    [3, 'Velocità massima' ],
+    [4, 'Stato movimento']
   ]);
 
   form = this._formBuilder.group({
-    alarmType:  new FormControl(this.selectedAlarmType, [Validators.required]),
     name:  new FormControl('', [Validators.required, ValidateInput.notEmpty, Validators.maxLength(100)]),
     distance:  new FormControl('',  [Validators.required]),
     distanceUnit:  new FormControl('m'),
-    poi:  new FormControl('', [Validators.required]),
+    poiId:  new FormControl('', [Validators.required]),
     polygon:  new FormControl(this.data.polygon, [Validators.required]),
-    vehicle:  new FormControl('', [Validators.required]),
+    vehicleId:  new FormControl('', [Validators.required]),
     maxSpeed:  new FormControl('', [Validators.required, Validators.max(500)]),
-    sendType:  new FormControl('', [Validators.required]),
+    sendType:  new FormControl('email', [Validators.required]),
     email:  new FormControl('', [Validators.required, Validators.email]),
-    phone:  new FormControl('+39', [Validators.required, Validators.pattern(/^(\+39|0)\d{8,10}$/)])
+    phone:  new FormControl('+39', [Validators.required, Validators.pattern(/^(\+39)?\d{10}$/)])
   });
+
+  commonFields = ['name', 'vehicleId', 'sendType'];
+  requiredFields: {[key: number]: string[]} = {
+    1: [...this.commonFields, 'distance', 'distanceUnit', 'poiId'],
+    2: [...this.commonFields, 'polygon'],
+    3: [...this.commonFields, 'maxSpeed'],
+    4: [...this.commonFields],
+  };
 
   // error messages
   requiredFieldMessage: string = 'Campo obbligatorio';
@@ -88,8 +95,8 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.selectedTemplate = this.data.template === 'choiceTemplate' ? this.choiceTemplate : this.createTemplate;
-    if (this.data.alarmType) {
-      this.selectedAlarmType = AlarmTypeEnum.GEO_AREA;
+    if (this.data.alarmTypeId) {
+      this.selectedAlarmTypeId = this.data.alarmTypeId;
     }
     this.findAllAlarmTypes();
     this.findAllPois();
@@ -97,7 +104,7 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    if (this.selectedAlarmType === AlarmTypeEnum.GEO_AREA) {
+    if (this.selectedAlarmTypeId === 2) {
       this.miniMapService.setMapHtmlContainer(this.mapElementRef.nativeElement);
       this.miniMapService.mapInit();
       this.miniMapService.placePolygon(this.data.polygon);
@@ -109,9 +116,6 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
     promise
       .then((alarmTypes: Array<IAlarmType>) => {
         if (alarmTypes) {
-          alarmTypes.forEach((alarmType: IAlarmType) => {
-            alarmType.name = AlarmTypeEnum[alarmType.name] as unknown as AlarmTypeEnum;
-          });
           this.alarmTypes = alarmTypes;
         }
       })
@@ -147,22 +151,62 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
       .finally();
   }
 
-  openModalBySelectedType(type:any) {
-    if (type === AlarmTypeEnum.GEO_AREA) {
+  openModalBySelectedType(alarmTypeId:any) {
+    if (alarmTypeId === 2) {
       this.createPolygon();
     }
-    this.selectedAlarmType = type;
+    this.selectedAlarmTypeId = alarmTypeId;
     this.selectedTemplate = this.createTemplate;
   }
 
   onBack() {
     this.form.reset();
+    // reset default values
+    this.form.get('sendType')?.setValue('email');
+    this.form.get('distanceUnit')?.setValue('m');
     this.selectedTemplate = this.choiceTemplate;
   }
 
-  onSubmit(){
-    console.log("form data ", this.form.value);
-    const promise = this._alarmService.create(this.form.value);
+  isFormValid(): boolean {
+    const selectedFields = this.requiredFields[this.selectedAlarmTypeId];
+    for (const field of selectedFields) {
+      if (field === 'sendType') {
+        const sendTypeValue = this.form.get('sendType')?.value;
+        if (!(sendTypeValue === 'email' ? this.form.get('email')?.valid : this.form.get('phone')?.valid)) return false;
+      } else {
+        if (!this.form.get(field)?.valid) return false;
+      }
+    }
+    return true;
+  }
+
+  getFormValues(): {} {
+    let formData: any = {};
+    const selectedFields = this.requiredFields[this.selectedAlarmTypeId];
+    selectedFields.forEach(key => {
+      if (key === 'polygon') {
+        const polygonSequence: any = [];
+        const vertices = this.form.get('polygon')?.value.getPath();
+        for (let i = 0; i < vertices.getLength(); i++) {
+          polygonSequence.push([vertices.getAt(i).lat(), vertices.getAt(i).lng()])
+        }
+        polygonSequence.pop(); // Remove the last point
+        polygonSequence.push([vertices.getAt(0).lat(), vertices.getAt(0).lng()]);
+        formData['polygon'] = polygonSequence;
+      } else if (key === 'sendType') {
+        let sendType = this.form.get('sendType')?.value;
+        formData[key] = sendType;
+        let contactKey = sendType === 'email' ? 'email': 'phone';
+        formData[contactKey] = this.form.get(contactKey)?.value
+      } else {formData[key] = this.form.get(key)?.value;}
+    });
+    formData['alarmTypeId'] = this.selectedAlarmTypeId;
+    return formData;
+  }
+
+  onSubmit() {
+    console.log('form data ', this.getFormValues());
+    const promise = this._alarmService.create(this.getFormValues());
     promise
       .then((alarm : IAlarm) => {
         this._snackBar.open('Allarme creato', 'Ok', {
@@ -172,13 +216,6 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
         });
         this.form.reset();
         this.dialogRef.close();
-
-        // if (!this._mapControlService.getShowPoi()) {
-        //   setTimeout(() => {
-        //     this._poiMapService.togglePoiMarkers(false);
-        //   }, 5000);
-        // }
-
       })
       .catch((e: any) => {
         if (e.error) {
@@ -207,7 +244,7 @@ export class AlarmDialogComponent implements OnInit, AfterViewInit {
       this.dialog.open(AlarmDialogComponent, {
         data: {
           template: 'createTemplate',
-          alarmType: AlarmTypeEnum.GEO_AREA,
+          alarmTypeId: 2,
           polygon: polygon
         },
       });
